@@ -6,9 +6,9 @@ The project is intentionally **benchmark-first**. DeepEval, promptfoo, Langfuse,
 
 ## Status
 
-**Step 0 — Project inception**
+**Step 1A — Pluggable core and agent definitions**
 
-The repository currently defines the product boundary, benchmark methodology, autonomy maturity model, architecture decisions, and initial data contracts. The executable runner begins in Step 1.
+The repository defines the product boundary, benchmark methodology, autonomy maturity model, architecture decisions, portable agent profiles, and runtime plugin contracts. The executable runner and integration adapters have not been implemented yet.
 
 ## North-star question
 
@@ -39,13 +39,21 @@ The repository currently defines the product boundary, benchmark methodology, au
 ## Repository map
 
 ```text
+agents/                  Portable agent definitions selected at runtime
+evaluation-profiles/     Runtime-selectable evaluator and telemetry stacks
+fixtures/                Deterministic tool and environment data
+src/arlab/               Dependency-free core contracts and plugin discovery
+integrations/            Optional OpenCode, Ollama, eval, and storage adapters
 docs/                    Product, methodology, and architecture decisions
-schemas/                 Versioned scenario and result contracts
+schemas/                 Versioned agent, scenario, result, and profile contracts
 suites/                  Human-reviewable benchmark scenarios
+tests/                   Contract and plugin-boundary tests
 .github/                 Contribution and governance templates
 ```
 
-The runnable package, adapters, sandbox, evaluators, telemetry layer, and dashboard will be added incrementally after the contracts are validated.
+The core does not import OpenCode, Ollama, DeepEval, promptfoo, or Langfuse. Runtime profiles resolve optional integrations through standard plugin entry points.
+
+See [the plugin architecture](docs/plugin-architecture.md) and [agent definitions](agents/README.md).
 
 ## Step 0 review checklist
 

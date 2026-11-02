@@ -1,0 +1,28 @@
+schema_version: "1.0"
+id: deterministic-only
+version: "1.0"
+description: Exact project-owned checks with no external evaluation framework.
+fail_fast: true
+
+evaluators:
+  - id: core
+    adapter: deterministic
+    required: true
+    metrics:
+      - task_conditions
+      - tool_selection
+      - argument_exactness
+      - authorization
+      - side_effects
+      - budgets
+    config: {}
+
+telemetry:
+  sinks:
+    - local-jsonl
+
+result_store:
+  adapter: duckdb
+  config:
+    path: results/arlab.duckdb
+

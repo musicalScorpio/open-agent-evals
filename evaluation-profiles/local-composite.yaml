@@ -1,0 +1,62 @@
+schema_version: "1.0"
+id: local-composite
+version: "1.0"
+description: Fully local evaluation with interchangeable optional frameworks.
+fail_fast: false
+
+evaluators:
+  - id: core
+    adapter: deterministic
+    required: true
+    metrics:
+      - task_conditions
+      - tool_selection
+      - argument_exactness
+      - authorization
+      - side_effects
+      - budgets
+    config: {}
+
+  - id: semantic
+    adapter: deepeval
+    required: false
+    metrics:
+      - task_completion
+      - argument_correctness
+      - tool_correctness
+    config:
+      judge_provider: ollama
+      judge_model: qwen3.5:9b
+      endpoint: http://127.0.0.1:11434
+
+  - id: adversarial
+    adapter: promptfoo
+    required: false
+    metrics:
+      - prompt_injection
+      - policy_compliance
+    config:
+      provider: ollama:chat:qwen3.5:9b
+      remote_generation: false
+      telemetry: false
+
+  - id: experiment-scores
+    adapter: langfuse
+    required: false
+    metrics:
+      - imported_scores
+    config:
+      base_url: http://127.0.0.1:3000
+      mode: self-hosted
+
+telemetry:
+  sinks:
+    - local-jsonl
+    - opentelemetry
+    - langfuse
+
+result_store:
+  adapter: duckdb
+  config:
+    path: results/arlab.duckdb
+

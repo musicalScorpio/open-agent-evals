@@ -98,7 +98,7 @@ The system records all controllable inputs and versions. It does not claim that 
 | Area | Decision |
 |---|---|
 | Project name | `agent-reliability-lab` |
-| Core language | Python 3.12+ |
+| Core language | Python 3.11+ |
 | Scenario format | YAML validated by versioned JSON Schema |
 | Result contract | JSON-compatible normalized run record |
 | Agent boundary | Framework-neutral adapter; Python and HTTP first |

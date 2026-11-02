@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: opencode.gpt-oss-20b.local
+version: "1.0"
+description: Default local OpenCode agent using gpt-oss:20b through Ollama.
+tags: [local, open-source, opencode, ollama, agentic]
+
+runtime:
+  adapter: opencode
+  mode: cli
+  command: opencode
+  working_directory: "{trial_workspace}"
+
+model:
+  provider: ollama
+  name: gpt-oss:20b
+  endpoint: http://127.0.0.1:11434
+  license: Apache-2.0
+  options:
+    num_ctx: 32768
+    temperature: 0.1
+    seed: 42
+    keep_alive: 0
+
+capabilities:
+  tool_use: true
+  multi_turn: true
+  streaming: true
+  resumable: true
+  permission_handling: true
+  structured_output: true
+
+permissions:
+  default: deny
+  rules:
+    read: allow
+    list: allow
+    glob: allow
+    grep: allow
+    edit: ask
+    bash: ask
+    external_directory: deny
+    webfetch: deny
+    websearch: deny
+
+limits:
+  max_turns: 20
+  max_tool_calls: 40
+  timeout_seconds: 900
+
+metadata:
+  intended_use: default-local-agent
+  memory_class: medium
+

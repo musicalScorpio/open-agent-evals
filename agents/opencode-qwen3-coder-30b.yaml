@@ -1,0 +1,53 @@
+schema_version: "1.0"
+id: opencode.qwen3-coder-30b.local
+version: "1.0"
+description: High-memory local OpenCode coding agent using Qwen3-Coder through Ollama.
+tags: [local, open-source, opencode, ollama, coding]
+
+runtime:
+  adapter: opencode
+  mode: cli
+  command: opencode
+  working_directory: "{trial_workspace}"
+
+model:
+  provider: ollama
+  name: qwen3-coder:30b
+  endpoint: http://127.0.0.1:11434
+  license: Apache-2.0
+  options:
+    num_ctx: 16384
+    temperature: 0.1
+    seed: 42
+    keep_alive: 0
+
+capabilities:
+  tool_use: true
+  multi_turn: true
+  streaming: true
+  resumable: true
+  permission_handling: true
+  structured_output: true
+
+permissions:
+  default: deny
+  rules:
+    read: allow
+    list: allow
+    glob: allow
+    grep: allow
+    edit: ask
+    bash: ask
+    external_directory: deny
+    webfetch: deny
+    websearch: deny
+
+limits:
+  max_turns: 20
+  max_tool_calls: 40
+  timeout_seconds: 1200
+
+metadata:
+  intended_use: coding-challenger
+  memory_class: high
+
