@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-reliability-lab.dev/schemas/result.schema.json",
+  "title": "Agent Reliability Lab Trial Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "trial_id",
+    "scenario",
+    "agent",
+    "started_at",
+    "duration_ms",
+    "status",
+    "outcome",
+    "tool_calls",
+    "measurements",
+    "evaluations",
+    "provenance"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "trial_id": { "type": "string", "minLength": 1 },
+    "scenario": { "$ref": "#/$defs/versionedIdentity" },
+    "agent": { "$ref": "#/$defs/versionedIdentity" },
+    "started_at": { "type": "string", "format": "date-time" },
+    "duration_ms": { "type": "number", "minimum": 0 },
+    "status": {
+      "enum": ["passed", "failed", "infrastructure_error", "cancelled"]
+    },
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_success", "final_output"],
+      "properties": {
+        "task_success": { "type": "boolean" },
+        "partial_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "final_output": { "type": ["string", "object", "array", "null"] },
+        "final_state": { "type": "object" },
+        "safe_refusal": { "type": "boolean" }
+      }
+    },
+    "turns": { "type": "array", "items": { "$ref": "#/$defs/turn" } },
+    "tool_calls": { "type": "array", "items": { "$ref": "#/$defs/toolCall" } },
+    "side_effects": { "type": "array", "items": { "type": "object" } },
+    "faults_injected": { "type": "array", "items": { "type": "object" } },
+    "measurements": { "$ref": "#/$defs/measurements" },
+    "evaluations": { "type": "array", "items": { "$ref": "#/$defs/evaluation" } },
+    "failures": { "type": "array", "items": { "$ref": "#/$defs/failure" } },
+    "trace_id": { "type": "string" },
+    "provenance": { "$ref": "#/$defs/provenance" }
+  },
+  "$defs": {
+    "versionedIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "type": "string", "minLength": 1 },
+        "content_hash": { "type": "string" }
+      }
+    },
+    "turn": {
+      "type": "object",
+      "required": ["role", "content", "timestamp"],
+      "properties": {
+        "role": { "enum": ["system", "user", "assistant", "tool"] },
+        "content": { "type": ["string", "object", "array", "null"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "toolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["call_id", "name", "arguments", "status", "duration_ms"],
+      "properties": {
+        "call_id": { "type": "string", "minLength": 1 },
+        "name": { "type": "string", "minLength": 1 },
+        "arguments": { "type": "object" },
+        "result": {},
+        "status": { "enum": ["succeeded", "failed", "denied", "timed_out"] },
+        "duration_ms": { "type": "number", "minimum": 0 },
+        "error_type": { "type": "string" },
+        "retry_of": { "type": "string" },
+        "authorized": { "type": "boolean" },
+        "side_effect_id": { "type": "string" }
+      }
+    },
+    "measurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["turn_count", "tool_call_count", "model_call_count", "total_cost_usd"],
+      "properties": {
+        "turn_count": { "type": "integer", "minimum": 0 },
+        "tool_call_count": { "type": "integer", "minimum": 0 },
+        "model_call_count": { "type": "integer", "minimum": 0 },
+        "input_tokens": { "type": "integer", "minimum": 0 },
+        "output_tokens": { "type": "integer", "minimum": 0 },
+        "cached_input_tokens": { "type": "integer", "minimum": 0 },
+        "reasoning_tokens": { "type": "integer", "minimum": 0 },
+        "model_cost_usd": { "type": "number", "minimum": 0 },
+        "evaluator_cost_usd": { "type": "number", "minimum": 0 },
+        "total_cost_usd": { "type": "number", "minimum": 0 },
+        "time_to_first_token_ms": { "type": "number", "minimum": 0 }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "evaluator", "score", "passed"],
+      "properties": {
+        "metric": { "type": "string", "minLength": 1 },
+        "evaluator": { "$ref": "#/$defs/versionedIdentity" },
+        "score": { "type": "number" },
+        "threshold": { "type": "number" },
+        "passed": { "type": "boolean" },
+        "reason": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["category", "message", "attributed_to_agent"],
+      "properties": {
+        "category": { "type": "string", "minLength": 1 },
+        "message": { "type": "string", "minLength": 1 },
+        "attributed_to_agent": { "type": "boolean" },
+        "evidence": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository_commit", "runner_version", "environment_hash"],
+      "properties": {
+        "repository_commit": { "type": "string", "minLength": 1 },
+        "runner_version": { "type": "string", "minLength": 1 },
+        "environment_hash": { "type": "string", "minLength": 1 },
+        "model_provider": { "type": "string" },
+        "model_name": { "type": "string" },
+        "model_version": { "type": "string" },
+        "prompt_hash": { "type": "string" },
+        "configuration": { "type": "object" }
+      }
+    }
+  }
+}

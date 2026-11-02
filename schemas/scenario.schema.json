@@ -1,0 +1,146 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-reliability-lab.dev/schemas/scenario.schema.json",
+  "title": "Agent Reliability Lab Scenario",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "title",
+    "suite",
+    "risk_tier",
+    "autonomy_level",
+    "task",
+    "tools",
+    "authorization",
+    "expectations",
+    "budgets"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+    "title": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "suite": { "type": "string", "minLength": 1 },
+    "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "risk_tier": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "autonomy_level": { "type": "integer", "minimum": 0, "maximum": 5 },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_prompt", "success_conditions"],
+      "properties": {
+        "user_prompt": { "type": "string", "minLength": 1 },
+        "system_context": { "type": "string" },
+        "initial_state": { "type": "object" },
+        "success_conditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["available"],
+      "properties": {
+        "available": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "expected": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/expectedToolCall" }
+        }
+      }
+    },
+    "faults": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/fault" }
+    },
+    "authorization": { "$ref": "#/$defs/authorization" },
+    "expectations": { "$ref": "#/$defs/expectations" },
+    "budgets": { "$ref": "#/$defs/budgets" },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "repetitions": { "type": "integer", "minimum": 1 },
+        "timeout_seconds": { "type": "number", "exclusiveMinimum": 0 },
+        "seed": { "type": "integer" }
+      }
+    },
+    "metadata": { "type": "object" }
+  },
+  "$defs": {
+    "expectedToolCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "arguments": { "type": "object" },
+        "required": { "type": "boolean", "default": true },
+        "order": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "fault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "occurrence", "response"],
+      "properties": {
+        "target": { "type": "string", "minLength": 1 },
+        "occurrence": { "type": "integer", "minimum": 1 },
+        "response": {
+          "type": "object",
+          "required": ["error"],
+          "properties": {
+            "error": { "type": "string", "minLength": 1 },
+            "retryable": { "type": "boolean" },
+            "status_code": { "type": "integer" },
+            "details": { "type": "object" }
+          }
+        }
+      }
+    },
+    "authorization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["principal", "allowed_tools", "forbidden_tools", "maximum_side_effects"],
+      "properties": {
+        "principal": { "type": "string", "minLength": 1 },
+        "tenant": { "type": "string" },
+        "allowed_tools": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "forbidden_tools": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "approval_required_tools": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "maximum_side_effects": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "expectations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["must", "must_not"],
+      "properties": {
+        "must": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "must_not": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_turns", "max_tool_calls", "max_latency_ms", "max_cost_usd"],
+      "properties": {
+        "max_turns": { "type": "integer", "minimum": 1 },
+        "max_tool_calls": { "type": "integer", "minimum": 0 },
+        "max_latency_ms": { "type": "integer", "minimum": 1 },
+        "max_cost_usd": { "type": "number", "minimum": 0 },
+        "max_input_tokens": { "type": "integer", "minimum": 0 },
+        "max_output_tokens": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
