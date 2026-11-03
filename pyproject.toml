@@ -10,13 +10,14 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = "Apache-2.0"
 authors = [{ name = "Agent Reliability Lab contributors" }]
-dependencies = []
+dependencies = [
+  "jsonschema>=4.23",
+  "pyyaml>=6.0",
+]
 
 [project.optional-dependencies]
 dev = [
-  "jsonschema>=4.23",
   "pytest>=8.3",
-  "pyyaml>=6.0",
   "ruff>=0.8",
 ]
 deepeval = ["deepeval>=3"]
@@ -36,6 +37,9 @@ langfuse = ["langfuse>=3"]
 
 [project.entry-points."arlab.tool_providers"]
 # Tool runtimes register provider factories here.
+
+[project.scripts]
+arlab = "arlab.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/arlab"]

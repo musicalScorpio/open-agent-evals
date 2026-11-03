@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 
 
 def _frozen_mapping(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
@@ -33,6 +34,7 @@ class EvaluationProfile:
     evaluators: tuple[EvaluatorDefinition, ...]
     telemetry_sinks: tuple[str, ...] = ()
     result_store: str = "local"
+    result_store_config: Mapping[str, Any] = field(default_factory=dict)
     fail_fast: bool = False
 
     def __post_init__(self) -> None:
@@ -45,6 +47,29 @@ class EvaluationProfile:
             raise ValueError("evaluator ids must be unique within a profile")
         object.__setattr__(self, "evaluators", tuple(self.evaluators))
         object.__setattr__(self, "telemetry_sinks", tuple(self.telemetry_sinks))
+        object.__setattr__(self, "result_store_config", _frozen_mapping(self.result_store_config))
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> EvaluationProfile:
+        store = value["result_store"]
+        return cls(
+            id=str(value["id"]),
+            version=str(value["version"]),
+            evaluators=tuple(
+                EvaluatorDefinition(
+                    id=str(item["id"]),
+                    adapter=str(item["adapter"]),
+                    metrics=tuple(item.get("metrics", ())),
+                    config=item.get("config", {}),
+                    required=bool(item.get("required", True)),
+                )
+                for item in value["evaluators"]
+            ),
+            telemetry_sinks=tuple(value.get("telemetry", {}).get("sinks", ())),
+            result_store=str(store["adapter"]),
+            result_store_config=store.get("config", {}),
+            fail_fast=bool(value.get("fail_fast", False)),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -76,4 +101,3 @@ class EvaluationResult:
     def __post_init__(self) -> None:
         object.__setattr__(self, "evidence", tuple(self.evidence))
         object.__setattr__(self, "metadata", _frozen_mapping(self.metadata))
-

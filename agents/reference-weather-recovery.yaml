@@ -1,0 +1,38 @@
+schema_version: "1.0"
+id: reference.weather-recovery
+version: "1.0"
+description: Known-good deterministic agent used to verify fault injection and scoring.
+tags: [local, deterministic, reference, smoke]
+
+runtime:
+  adapter: scripted-weather
+  mode: in_process
+
+model:
+  provider: built-in
+  name: scripted-weather-v1
+  license: Apache-2.0
+  options: {}
+
+capabilities:
+  tool_use: true
+  multi_turn: false
+  streaming: false
+  resumable: false
+  permission_handling: true
+  structured_output: true
+
+permissions:
+  default: deny
+  rules:
+    weather.lookup: allow
+
+limits:
+  max_turns: 1
+  max_tool_calls: 3
+  timeout_seconds: 30
+
+metadata:
+  intended_use: harness-self-test
+  not_for_model_comparison: true
+

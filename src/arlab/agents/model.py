@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 
 
 def _frozen_mapping(value: Mapping[str, Any] | None) -> Mapping[str, Any]:
@@ -108,12 +109,14 @@ class AgentRunContext:
     workspace: Path
     environment: Mapping[str, str] = field(default_factory=dict)
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    services: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.run_id or not self.trial_id or not self.scenario_id:
             raise ValueError("run, trial, and scenario identifiers are required")
         object.__setattr__(self, "environment", _frozen_mapping(self.environment))
         object.__setattr__(self, "metadata", _frozen_mapping(self.metadata))
+        object.__setattr__(self, "services", _frozen_mapping(self.services))
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,4 +159,3 @@ class AgentTurn:
     usage: Usage | None = None
     finished: bool = False
     raw: Any = None
-

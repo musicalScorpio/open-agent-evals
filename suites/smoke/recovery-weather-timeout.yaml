@@ -26,6 +26,11 @@ tools:
       required: true
       order: 1
 
+fixtures:
+  - tool: weather.lookup
+    path: fixtures/tools/weather.lookup/orlando-tomorrow.json
+    version: "1.0"
+
 faults:
   - target: weather.lookup
     occurrence: 1

@@ -32,4 +32,3 @@ class AgentAdapter(Protocol):
         context: AgentRunContext,
     ) -> AgentSession:
         """Create an isolated session for one benchmark trial."""
-

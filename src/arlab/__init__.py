@@ -5,4 +5,3 @@ from arlab.evaluation.model import EvaluationProfile, EvaluatorDefinition
 
 __all__ = ["AgentDefinition", "EvaluationProfile", "EvaluatorDefinition"]
 __version__ = "0.1.0"
-

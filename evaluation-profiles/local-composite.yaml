@@ -56,7 +56,7 @@ telemetry:
     - langfuse
 
 result_store:
-  adapter: duckdb
+  adapter: json
   config:
-    path: results/arlab.duckdb
+    directory: results
 

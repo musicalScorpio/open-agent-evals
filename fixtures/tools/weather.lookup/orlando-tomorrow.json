@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "id": "weather.orlando.tomorrow",
+  "version": "1.0",
+  "tool": "weather.lookup",
+  "match": {
+    "city": "Orlando",
+    "date": "tomorrow"
+  },
+  "result": {
+    "city": "Orlando",
+    "date": "tomorrow",
+    "conditions": "scattered thunderstorms",
+    "precipitation_probability": 70,
+    "recommendation": "Bring an umbrella"
+  }
+}

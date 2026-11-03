@@ -24,4 +24,3 @@ class Evaluator(Protocol):
         definition: EvaluatorDefinition,
     ) -> Sequence[EvaluationResult]:
         """Evaluate one normalized trial without mutating it."""
-

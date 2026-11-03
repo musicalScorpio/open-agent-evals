@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from importlib.metadata import EntryPoint, entry_points
-from typing import Generic, TypeVar
-
+from typing import Any, Generic, TypeVar
 
 T = TypeVar("T")
-Factory = Callable[[], T]
+Factory = Callable[[Mapping[str, Any]], T]
 
 PLUGIN_GROUPS = {
     "agent_adapter": "arlab.agent_adapters",
@@ -40,14 +39,13 @@ class PluginRegistry(Generic[T]):
         for entry_point in candidates:
             self.register(entry_point.name, entry_point.load())
 
-    def create(self, name: str) -> T:
+    def create(self, name: str, config: Mapping[str, Any] | None = None) -> T:
         try:
             factory = self._factories[name]
         except KeyError as exc:
             available = ", ".join(sorted(self._factories)) or "none"
             raise KeyError(f"plugin not found: {name}; available: {available}") from exc
-        return factory()
+        return factory(config or {})
 
     def names(self) -> tuple[str, ...]:
         return tuple(sorted(self._factories))
-

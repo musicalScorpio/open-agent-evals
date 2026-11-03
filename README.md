@@ -4,11 +4,53 @@ Agent Reliability Lab is a reproducible benchmark suite for tool-using AI agents
 
 The project is intentionally **benchmark-first**. DeepEval, promptfoo, Langfuse, and OpenTelemetry are integrations; the durable product is the versioned scenario corpus, controlled execution environment, normalized run record, calibrated metrics, and CI quality gates.
 
+## Run it locally
+
+The first executable benchmark is intentionally self-contained. It does not need a cloud key,
+Ollama, or OpenCode: it runs a known-good reference agent against a committed weather fixture,
+forces the first tool call to time out, verifies the retry, scores six deterministic metrics, and
+repeats the trial three times.
+
+```bash
+cd /Users/musicalscorpio/Documents/CODING/agent-reliability-lab
+uv sync --extra dev
+uv run arlab doctor
+uv run arlab validate
+uv run arlab run
+```
+
+The last command prints a run summary. Full evidence is written to
+`results/<run-id>/trial-*.json`, with an aggregate `summary.json`. The `results/` directory is
+ignored by Git so local runs do not dirty the repository.
+
+Useful variations:
+
+```bash
+# One quick trial instead of the scenario's default three
+uv run arlab run --runs 1
+
+# See every agent, evaluator, telemetry, and storage plugin available at runtime
+uv run arlab plugins
+
+# Select definitions explicitly
+uv run arlab run \
+  --scenario suites/smoke/recovery-weather-timeout.yaml \
+  --agent agents/reference-weather-recovery.yaml \
+  --profile evaluation-profiles/deterministic-only.yaml
+```
+
+`arlab doctor` reports Ollama and OpenCode separately. They are optional for this harness
+self-test. The OpenCode adapter and Ollama agent definitions are present; connecting benchmark
+tools to a real OpenCode session is the next runtime increment.
+
 ## Status
 
-**Step 1A — Pluggable core and agent definitions**
+**Step 1B — First runnable vertical slice**
 
-The repository defines the product boundary, benchmark methodology, autonomy maturity model, architecture decisions, portable agent profiles, and runtime plugin contracts. The executable runner and integration adapters have not been implemented yet.
+The repository now has validated definitions, pluggable runtime registries, deterministic fixture
+tools and fault injection, normalized results, local JSON/JSONL evidence, and an executable smoke
+benchmark. DeepEval, promptfoo, Langfuse, and OpenTelemetry remain optional runtime integrations;
+none are required by the core.
 
 ## North-star question
 
@@ -42,8 +84,8 @@ The repository defines the product boundary, benchmark methodology, autonomy mat
 agents/                  Portable agent definitions selected at runtime
 evaluation-profiles/     Runtime-selectable evaluator and telemetry stacks
 fixtures/                Deterministic tool and environment data
-src/arlab/               Dependency-free core contracts and plugin discovery
-integrations/            Optional OpenCode, Ollama, eval, and storage adapters
+src/arlab/               Core contracts, runner, built-ins, and plugin discovery
+integrations/            Future separately packaged framework integrations
 docs/                    Product, methodology, and architecture decisions
 schemas/                 Versioned agent, scenario, result, and profile contracts
 suites/                  Human-reviewable benchmark scenarios
@@ -55,16 +97,8 @@ The core does not import OpenCode, Ollama, DeepEval, promptfoo, or Langfuse. Run
 
 See [the plugin architecture](docs/plugin-architecture.md) and [agent definitions](agents/README.md).
 
-## Step 0 review checklist
-
-- [ ] Confirm the v0.1 target users and non-goals
-- [ ] Review the initial scenario schema
-- [ ] Review the initial result schema
-- [ ] Confirm the autonomy maturity definitions
-- [ ] Confirm the default CI gate philosophy
-- [ ] Choose the first reference agent for Step 1
-
-See [the Step 0 charter](docs/step-0-project-charter.md) for the decisions and exit criteria.
+See [the Step 0 charter](docs/step-0-project-charter.md) for the product decisions and
+[the plugin architecture](docs/plugin-architecture.md) for extension contracts.
 
 ## License
 
