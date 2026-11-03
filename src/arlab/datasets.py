@@ -49,7 +49,7 @@ def _record_scenario(manifest: Mapping[str, Any], record: Mapping[str, Any]) -> 
             "max_tool_calls": 0,
             "max_latency_ms": 30000,
             "max_cost_usd": 0.05,
-            "max_output_tokens": 256,
+            "max_output_tokens": 512,
         },
         "execution": {
             "repetitions": 1,
