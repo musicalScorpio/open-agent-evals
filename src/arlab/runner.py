@@ -165,6 +165,7 @@ class BenchmarkRunner:
                 scenario_id=str(scenario["id"]),
                 workspace=Path(directory),
                 environment={"ARLAB_RUN_ID": run_id, "ARLAB_TRIAL_ID": trial_id},
+                metadata={"scenario": scenario, "project_root": str(self.root)},
                 services={"tool_provider": tool_provider},
             )
             adapter = self.plugins["agent_adapter"].create(agent.adapter, agent.runtime)
@@ -180,7 +181,9 @@ class BenchmarkRunner:
         measurements = {
             "turn_count": 1,
             "tool_call_count": len(calls),
-            "model_call_count": 0 if agent.model.provider == "built-in" else 1,
+            "model_call_count": turn.model_call_count
+            if turn.model_call_count is not None
+            else (0 if agent.model.provider == "built-in" else 1),
             "total_cost_usd": float(usage.cost_usd or 0.0) if usage else 0.0,
         }
         if usage:

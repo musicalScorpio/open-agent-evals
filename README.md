@@ -41,7 +41,18 @@ uv run arlab run \
 
 `arlab doctor` reports Ollama and OpenCode separately. They are optional for this harness
 self-test. The OpenCode adapter and Ollama agent definitions are present; connecting benchmark
-tools to a real OpenCode session is the next runtime increment.
+tools to a real OpenCode session uses generated, trial-isolated custom tools.
+
+After installing OpenCode, starting Ollama, and pulling `gpt-oss:20b`, run the same scenario
+against the real local agent:
+
+```bash
+uv run arlab run --agent agents/opencode-gpt-oss-20b.yaml --runs 1
+```
+
+A nonzero exit code means the candidate failed one or more quality gates; it does not necessarily
+mean the harness crashed. Inspect the printed result directory to see task, tool, authorization,
+and budget evidence.
 
 ## Status
 

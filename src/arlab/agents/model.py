@@ -157,5 +157,6 @@ class AgentTurn:
     events: tuple[AgentEvent, ...] = ()
     tool_calls: tuple[ToolCall, ...] = ()
     usage: Usage | None = None
+    model_call_count: int | None = None
     finished: bool = False
     raw: Any = None
