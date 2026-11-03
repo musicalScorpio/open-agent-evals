@@ -95,4 +95,38 @@ def test_writes_ollama_provider_configuration(tmp_path: Path) -> None:
     assert config["model"] == "ollama/gpt-oss:20b"
     assert config["provider"]["ollama"]["options"]["baseURL"].endswith("/v1")
     assert config["permission"]["weather_lookup"] == "allow"
+    assert config["default_agent"] == "arlab"
+    assert config["agent"]["arlab"]["mode"] == "primary"
+    assert config["agent"]["arlab"]["prompt"] == "{file:./ARLAB_INSTRUCTIONS.md}"
     assert (tmp_path / "ARLAB_INSTRUCTIONS.md").exists()
+
+
+def test_parses_structured_retryable_fault_as_failed_call(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+    session._tool_names["weather_lookup"] = "weather.lookup"
+    events = [
+        {
+            "type": "tool_use",
+            "part": {
+                "tool": "weather_lookup",
+                "callID": "first",
+                "state": {
+                    "status": "completed",
+                    "input": {"city": "Miami", "date": "2026-11-02"},
+                    "output": json.dumps(
+                        {
+                            "__arlab_fault__": True,
+                            "ok": False,
+                            "error": "rate_limited",
+                            "retryable": True,
+                        }
+                    ),
+                },
+            },
+        }
+    ]
+
+    _, _, _, calls, _, _ = session._parse_events(json.dumps(events[0]).encode())
+
+    assert calls[0].error == "rate_limited"
+    assert calls[0].result is None

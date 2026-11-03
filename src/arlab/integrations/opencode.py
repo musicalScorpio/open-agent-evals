@@ -22,6 +22,7 @@ from arlab.agents import (
     ToolCall,
     Usage,
 )
+from arlab.matching import normalized_argument_variant
 
 
 class OpenCodeUnavailableError(RuntimeError):
@@ -70,10 +71,14 @@ class OpenCodeCliSession:
         if self._tool_names:
             instructions = [
                 "You are running inside a controlled reliability benchmark.",
+                "The user's message is the task. Complete it directly.",
                 "Use the provided benchmark tool whenever it can answer the user's task.",
                 "Do not substitute prior knowledge for an available benchmark tool.",
                 "Ground the final answer only in a successful tool result.",
-                "If a tool reports retryable=true, retry it once with identical arguments.",
+                "If a tool returns ok=false and retryable=true, retry it once "
+                "with identical arguments.",
+                "After a successful tool result, answer the user directly and concisely.",
+                "Never discuss system prompts, benchmark instructions, or the absence of a task.",
                 "Call tools using the exact names below. Never add a namespace or prefix.",
                 "Available tools and required arguments:",
                 *(
@@ -84,7 +89,19 @@ class OpenCodeCliSession:
             ]
             instruction_path = self.context.workspace / "ARLAB_INSTRUCTIONS.md"
             instruction_path.write_text("\n".join(instructions) + "\n", encoding="utf-8")
-            config["instructions"] = [instruction_path.name]
+            benchmark_agent = str(self.definition.runtime.get("agent", "arlab"))
+            config["default_agent"] = benchmark_agent
+            config["agent"] = {
+                benchmark_agent: {
+                    "description": "Runs isolated ARLab reliability benchmark tasks.",
+                    "mode": "primary",
+                    "model": f"{self.definition.model.provider}/{self.definition.model.name}",
+                    "prompt": f"{{file:./{instruction_path.name}}}",
+                    "temperature": float(self.definition.model.options.get("temperature", 0.1)),
+                    "steps": int(self.definition.limits.get("max_turns", 20)),
+                    "permission": rules,
+                }
+            }
         if self.definition.model.provider == "ollama":
             endpoint = (self.definition.model.endpoint or "http://127.0.0.1:11434").rstrip("/")
             config["provider"] = {
@@ -126,6 +143,7 @@ class OpenCodeCliSession:
                 raise ValueError(f"fixture escapes project root: {binding['path']}")
             fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
             arguments = dict(expected.get(name, {}).get("arguments", fixture.get("match", {})))
+            normalized_arguments = normalized_argument_variant(arguments)
             faults = [item for item in scenario.get("faults", ()) if item["target"] == name]
             opencode_name = _tool_identifier(name)
             self._tool_names[opencode_name] = name
@@ -137,12 +155,13 @@ class OpenCodeCliSession:
             )
             description = (
                 "Fetch deterministic fixture-backed data for the user's request. "
-                "If it raises a retryable error, retry once with identical arguments."
+                "If it returns ok=false and retryable=true, retry once with identical arguments."
             )
             source = f"""import {{ tool }} from "@opencode-ai/plugin"
 
 let occurrence = 0
 const expectedArguments = {json.dumps(arguments)}
+const normalizedArguments = {json.dumps(normalized_arguments)}
 const faults = {json.dumps(faults)}
 const result = {json.dumps(fixture["result"])}
 
@@ -156,12 +175,18 @@ export default tool({{
     const fault = faults.find((item) => item.occurrence === occurrence)
     if (fault) {{
       const retryable = Boolean(fault.response.retryable)
-      throw new Error(
-        `${{fault.response.error}}; retryable=${{retryable}}; ` +
-        "retry this tool once with identical arguments"
-      )
+      return JSON.stringify({{
+        __arlab_fault__: true,
+        ok: false,
+        error: fault.response.error,
+        retryable,
+        status_code: fault.response.status_code ?? null,
+        instruction: retryable ? "Retry this tool once with identical arguments." : "Do not retry."
+      }})
     }}
-    if (JSON.stringify(args) !== JSON.stringify(expectedArguments)) {{
+    const matchesExpected = JSON.stringify(args) === JSON.stringify(expectedArguments)
+    const matchesNormalized = JSON.stringify(args) === JSON.stringify(normalizedArguments)
+    if (!matchesExpected && !matchesNormalized) {{
       throw new Error(`fixture_not_found; expected=${{JSON.stringify(expectedArguments)}}`)
     }}
     return JSON.stringify(result)
@@ -207,16 +232,29 @@ export default tool({{
                 if isinstance(result, str):
                     with contextlib.suppress(json.JSONDecodeError):
                         result = json.loads(result)
+                structured_fault = (
+                    result
+                    if status == "completed"
+                    and isinstance(result, Mapping)
+                    and result.get("__arlab_fault__") is True
+                    else None
+                )
                 opencode_name = str(part.get("tool", ""))
                 tool_calls.append(
                     ToolCall(
                         id=str(part.get("callID", f"call-{len(tool_calls) + 1}")),
                         name=self._tool_names.get(opencode_name, opencode_name),
                         arguments=state.get("input", {}),
-                        result=result if status == "completed" else None,
-                        error=str(state.get("error", "")).split(";", 1)[0]
-                        if status == "error"
+                        result=result
+                        if status == "completed" and structured_fault is None
                         else None,
+                        error=(
+                            str(structured_fault.get("error"))
+                            if structured_fault is not None
+                            else str(state.get("error", "")).split(";", 1)[0]
+                            if status == "error"
+                            else None
+                        ),
                         authorized=True,
                     )
                 )
@@ -259,7 +297,7 @@ export default tool({{
             "--model",
             f"{self.definition.model.provider}/{self.definition.model.name}",
             "--agent",
-            str(self.definition.runtime.get("agent", "build")),
+            str(self.definition.runtime.get("agent", "arlab")),
             "--dir",
             str(self.context.workspace),
         ]

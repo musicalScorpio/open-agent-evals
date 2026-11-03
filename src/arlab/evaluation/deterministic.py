@@ -7,6 +7,7 @@ from fnmatch import fnmatch
 from typing import Any
 
 from arlab.evaluation.model import EvaluationRequest, EvaluationResult, EvaluatorDefinition
+from arlab.matching import arguments_match
 
 
 class DeterministicEvaluator:
@@ -110,12 +111,14 @@ class DeterministicEvaluator:
             wanted = dict(expected.get("arguments", {}))
             if expected.get("required", True) and not named:
                 mismatches.append(f"missing:{expected['name']}")
-            elif any(dict(call.get("arguments", {})) != wanted for call in named):
+            elif any(
+                not arguments_match(dict(call.get("arguments", {})), wanted) for call in named
+            ):
                 mismatches.append(f"arguments:{expected['name']}")
         passed = not mismatches
         return (
             passed,
-            "all tool arguments matched exactly" if passed else ", ".join(mismatches),
+            "all tool arguments matched accepted equivalents" if passed else ", ".join(mismatches),
             tuple(mismatches),
         )
 

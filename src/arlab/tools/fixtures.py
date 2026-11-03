@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from arlab.matching import arguments_match
+
 
 class ToolInvocationError(RuntimeError):
     def __init__(self, error_type: str, *, retryable: bool = False, details: Any = None) -> None:
@@ -54,6 +56,8 @@ class FixtureToolProvider:
                 )
 
         for fixture in self._fixtures:
-            if fixture["tool"] == name and dict(fixture.get("match", {})) == dict(arguments):
+            if fixture["tool"] == name and arguments_match(
+                arguments, dict(fixture.get("match", {}))
+            ):
                 return fixture["result"]
         raise ToolInvocationError("fixture_not_found", retryable=False)
