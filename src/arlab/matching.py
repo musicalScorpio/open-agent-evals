@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import unicodedata
 from collections.abc import Mapping
 from datetime import date, timedelta
 from typing import Any
@@ -51,3 +52,23 @@ def normalized_argument_variant(
             if offset is not None:
                 normalized[key] = (today + timedelta(days=offset)).isoformat()
     return normalized
+
+
+def normalize_answer(value: str) -> str:
+    """Normalize an answer for deterministic, accent-insensitive phrase matching."""
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    characters = []
+    for character in decomposed:
+        if unicodedata.combining(character):
+            continue
+        if character.isalnum():
+            characters.append(character)
+        elif character.isspace() or character in {"-", "/"}:
+            characters.append(" ")
+    return " ".join("".join(characters).split())
+
+
+def answer_contains_phrase(answer: str, phrase: str) -> bool:
+    normalized_answer = f" {normalize_answer(answer)} "
+    normalized_phrase = f" {normalize_answer(phrase)} "
+    return normalized_phrase in normalized_answer

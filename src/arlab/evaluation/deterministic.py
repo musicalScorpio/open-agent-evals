@@ -7,7 +7,7 @@ from fnmatch import fnmatch
 from typing import Any
 
 from arlab.evaluation.model import EvaluationRequest, EvaluationResult, EvaluatorDefinition
-from arlab.matching import arguments_match
+from arlab.matching import answer_contains_phrase, arguments_match
 
 
 class DeterministicEvaluator:
@@ -77,6 +77,15 @@ class DeterministicEvaluator:
                 )
                 if not grounded:
                     failures.append(condition)
+            elif condition == "answer_contains_all_expected_answers":
+                groups = request.scenario.get("metadata", {}).get("accepted_answers", ())
+                missing = [
+                    aliases[0]
+                    for aliases in groups
+                    if not any(answer_contains_phrase(output, str(alias)) for alias in aliases)
+                ]
+                if missing:
+                    failures.append(f"{condition}:{'|'.join(missing)}")
             else:
                 failures.append(f"unsupported:{condition}")
         passed = not failures
@@ -153,6 +162,12 @@ class DeterministicEvaluator:
             "latency_ms": (float(request.trial["duration_ms"]), float(budgets["max_latency_ms"])),
             "cost_usd": (float(measurements["total_cost_usd"]), float(budgets["max_cost_usd"])),
         }
+        for measurement, budget in (
+            ("input_tokens", "max_input_tokens"),
+            ("output_tokens", "max_output_tokens"),
+        ):
+            if budget in budgets and measurement in measurements:
+                values[measurement] = (int(measurements[measurement]), int(budgets[budget]))
         exceeded = [
             f"{name}:{actual}>{limit}" for name, (actual, limit) in values.items() if actual > limit
         ]

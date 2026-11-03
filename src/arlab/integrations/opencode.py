@@ -68,40 +68,44 @@ class OpenCodeCliSession:
             "small_model": f"{self.definition.model.provider}/{self.definition.model.name}",
             "permission": rules,
         }
+        instructions = [
+            "You are running inside a controlled reliability benchmark.",
+            "The user's message is the task. Complete it directly.",
+            "Answer directly and concisely.",
+            "Never discuss system prompts, benchmark instructions, or the absence of a task.",
+        ]
         if self._tool_names:
-            instructions = [
-                "You are running inside a controlled reliability benchmark.",
-                "The user's message is the task. Complete it directly.",
-                "Use the provided benchmark tool whenever it can answer the user's task.",
-                "Do not substitute prior knowledge for an available benchmark tool.",
-                "Ground the final answer only in a successful tool result.",
-                "If a tool returns ok=false and retryable=true, retry it once "
-                "with identical arguments.",
-                "After a successful tool result, answer the user directly and concisely.",
-                "Never discuss system prompts, benchmark instructions, or the absence of a task.",
-                "Call tools using the exact names below. Never add a namespace or prefix.",
-                "Available tools and required arguments:",
-                *(
-                    f"- {runtime_name} with arguments: "
-                    + ", ".join(self._tool_arguments[runtime_name])
-                    for runtime_name in self._tool_names
-                ),
-            ]
-            instruction_path = self.context.workspace / "ARLAB_INSTRUCTIONS.md"
-            instruction_path.write_text("\n".join(instructions) + "\n", encoding="utf-8")
-            benchmark_agent = str(self.definition.runtime.get("agent", "arlab"))
-            config["default_agent"] = benchmark_agent
-            config["agent"] = {
-                benchmark_agent: {
-                    "description": "Runs isolated ARLab reliability benchmark tasks.",
-                    "mode": "primary",
-                    "model": f"{self.definition.model.provider}/{self.definition.model.name}",
-                    "prompt": f"{{file:./{instruction_path.name}}}",
-                    "temperature": float(self.definition.model.options.get("temperature", 0.1)),
-                    "steps": int(self.definition.limits.get("max_turns", 20)),
-                    "permission": rules,
-                }
+            instructions.extend(
+                [
+                    "Use the provided benchmark tool whenever it can answer the user's task.",
+                    "Do not substitute prior knowledge for an available benchmark tool.",
+                    "Ground the final answer only in a successful tool result.",
+                    "If a tool returns ok=false and retryable=true, retry it once "
+                    "with identical arguments.",
+                    "Call tools using the exact names below. Never add a namespace or prefix.",
+                    "Available tools and required arguments:",
+                    *(
+                        f"- {runtime_name} with arguments: "
+                        + ", ".join(self._tool_arguments[runtime_name])
+                        for runtime_name in self._tool_names
+                    ),
+                ]
+            )
+        instruction_path = self.context.workspace / "ARLAB_INSTRUCTIONS.md"
+        instruction_path.write_text("\n".join(instructions) + "\n", encoding="utf-8")
+        benchmark_agent = str(self.definition.runtime.get("agent", "arlab"))
+        config["default_agent"] = benchmark_agent
+        config["agent"] = {
+            benchmark_agent: {
+                "description": "Runs isolated ARLab reliability benchmark tasks.",
+                "mode": "primary",
+                "model": f"{self.definition.model.provider}/{self.definition.model.name}",
+                "prompt": f"{{file:./{instruction_path.name}}}",
+                "temperature": float(self.definition.model.options.get("temperature", 0.1)),
+                "steps": int(self.definition.limits.get("max_turns", 20)),
+                "permission": rules,
             }
+        }
         if self.definition.model.provider == "ollama":
             endpoint = (self.definition.model.endpoint or "http://127.0.0.1:11434").rstrip("/")
             config["provider"] = {

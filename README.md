@@ -81,6 +81,34 @@ default. DeepEval can load the file directly with
 The comparison JSON reports pass rate, average latency, model/tool calls, cost, and token totals for
 each agent. Increase `--runs` to measure repeatability instead of relying on a single attempt.
 
+### World capitals dataset
+
+The curated capitals dataset contains 195 records: the 193 UN member states plus Palestine and
+Vatican City/Holy See. Its prompts are generated deterministically from a pinned open-data source;
+special cases such as South Africa, Bolivia, Sri Lanka, Eswatini, Malaysia, Palestine, Switzerland,
+and Nauru preserve multiple, claimed, administrative, or de facto capital roles.
+
+```bash
+# Validate all 195 records and export them as DeepEval goldens
+uv run arlab dataset validate --dataset datasets/curated/world-capitals-v1.yaml
+uv run arlab dataset export-deepeval \
+  --dataset datasets/curated/world-capitals-v1.yaml
+
+# Fast local-model smoke run, then the complete benchmark
+uv run arlab dataset run \
+  --dataset datasets/curated/world-capitals-v1.yaml \
+  --limit 5
+uv run arlab dataset run \
+  --dataset datasets/curated/world-capitals-v1.yaml
+```
+
+Use `--split validation` or `--split test` to select a split. A complete local run makes 195 model
+requests per agent and can take a while, so start with `--limit`. Dataset-specific ODbL attribution
+and generation provenance are committed beside the JSONL file.
+
+To run a special case directly, use its stable ID, for example
+`--case geography.capital.za` for South Africa. Repeat `--case` to select several countries.
+
 ## Status
 
 **Step 1B — First runnable vertical slice**

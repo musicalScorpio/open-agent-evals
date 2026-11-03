@@ -4,7 +4,11 @@
   "title": "Agent Reliability Lab Dataset Manifest",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "id", "version", "description", "source", "generator", "cases"],
+  "required": ["schema_version", "id", "version", "description", "source", "generator"],
+  "oneOf": [
+    { "required": ["cases"], "not": { "required": ["records"] } },
+    { "required": ["records"], "not": { "required": ["cases"] } }
+  ],
   "properties": {
     "schema_version": { "const": "1.0" },
     "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
@@ -34,6 +38,16 @@
           "scenario": { "type": "string", "pattern": "^suites/.+\\.yaml$" },
           "split": { "enum": ["train", "validation", "test"] }
         }
+      }
+    },
+    "records": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "format", "schema"],
+      "properties": {
+        "path": { "type": "string", "pattern": "^datasets/.+\\.jsonl$" },
+        "format": { "const": "jsonl" },
+        "schema": { "type": "string", "pattern": "^schemas/.+\\.json$" }
       }
     },
     "metadata": { "type": "object" }

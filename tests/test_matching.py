@@ -1,6 +1,6 @@
 from datetime import date
 
-from arlab.matching import arguments_match, normalized_argument_variant
+from arlab.matching import answer_contains_phrase, arguments_match, normalized_argument_variant
 
 
 def test_relative_weather_dates_accept_equivalent_iso_dates() -> None:
@@ -29,3 +29,9 @@ def test_argument_matching_remains_strict_for_unrelated_values() -> None:
     assert normalized_argument_variant(
         {"city": "Phoenix", "date": "this afternoon"}, reference_date=reference
     ) == {"city": "Phoenix", "date": "2026-11-02"}
+
+
+def test_capital_answer_matching_handles_accents_and_boundaries() -> None:
+    assert answer_contains_phrase("The capital is Sao Tome.", "São Tomé")
+    assert answer_contains_phrase("It is Sri Jayewardenepura Kotte.", "Kotte")
+    assert not answer_contains_phrase("That is a female name.", "Malé")

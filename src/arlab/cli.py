@@ -22,7 +22,12 @@ from arlab.config import (
     load_yaml,
     project_root,
 )
-from arlab.datasets import export_deepeval_jsonl, scenario_cases
+from arlab.datasets import (
+    dataset_case_count,
+    dataset_split_counts,
+    export_deepeval_jsonl,
+    scenario_cases,
+)
 from arlab.runner import BenchmarkRunner
 
 
@@ -98,18 +103,14 @@ async def _run(args: argparse.Namespace, root: Path) -> int:
 def _dataset_validate(args: argparse.Namespace, root: Path) -> int:
     path = _path(root, args.dataset)
     manifest = load_dataset(path)
-    splits: dict[str, int] = {}
-    for case in manifest["cases"]:
-        split = str(case["split"])
-        splits[split] = splits.get(split, 0) + 1
     print(
         json.dumps(
             {
                 "dataset_id": manifest["id"],
                 "version": manifest["version"],
                 "source": manifest["source"],
-                "cases": len(manifest["cases"]),
-                "splits": splits,
+                "cases": dataset_case_count(manifest, root),
+                "splits": dataset_split_counts(manifest, root),
                 "review_status": manifest["generator"]["review_status"],
             },
             indent=2,
@@ -129,14 +130,17 @@ def _dataset_export(args: argparse.Namespace, root: Path) -> int:
         / f"{manifest['id']}-v{manifest['version']}.deepeval.jsonl"
     )
     path = export_deepeval_jsonl(manifest, root, output)
-    print(f"Exported {len(manifest['cases'])} DeepEval goldens to {path}")
+    print(f"Exported {dataset_case_count(manifest, root)} DeepEval goldens to {path}")
     return 0
 
 
 async def _dataset_run(args: argparse.Namespace, root: Path) -> int:
     manifest = load_dataset(_path(root, args.dataset))
     profile = load_profile(_path(root, args.profile))
-    agent_paths = args.agent or ["agents/reference-weather-recovery.yaml"]
+    default_agent = str(
+        manifest.get("metadata", {}).get("default_agent", "agents/reference-weather-recovery.yaml")
+    )
+    agent_paths = args.agent or [default_agent]
     agents = [(_path(root, path), load_agent(_path(root, path))) for path in agent_paths]
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     output_root = (
@@ -144,12 +148,25 @@ async def _dataset_run(args: argparse.Namespace, root: Path) -> int:
         if args.output
         else root / "results" / "datasets" / f"{manifest['id']}-{timestamp}"
     )
+    cases = scenario_cases(manifest, root)
+    if args.split:
+        cases = [case for case in cases if case[1] == args.split]
+    if args.case:
+        identifiers = set(args.case)
+        cases = [case for case in cases if str(case[0]["id"]) in identifiers]
+    if args.limit is not None:
+        if args.limit < 1:
+            raise ValueError("dataset limit must be at least 1")
+        cases = cases[: args.limit]
+    if not cases:
+        raise ValueError("no dataset cases matched the requested filters")
+
     runner = BenchmarkRunner(root)
     agent_summaries = []
     total_failures = 0
     for agent_path, agent in agents:
         case_summaries = []
-        for scenario, split in scenario_cases(manifest, root):
+        for scenario, split in cases:
             summary = await runner.run(
                 scenario,
                 agent,
@@ -240,6 +257,9 @@ def parser() -> argparse.ArgumentParser:
     run_dataset.add_argument("--agent", action="append", help="agent YAML; repeat to compare")
     run_dataset.add_argument("--profile", default="evaluation-profiles/deterministic-only.yaml")
     run_dataset.add_argument("--runs", type=int, default=1, help="repetitions per case")
+    run_dataset.add_argument("--split", choices=("train", "validation", "test"))
+    run_dataset.add_argument("--case", action="append", help="scenario ID; repeat to select cases")
+    run_dataset.add_argument("--limit", type=int, help="run only the first N matching cases")
     run_dataset.add_argument("--output", help="override comparison result directory")
     return value
 

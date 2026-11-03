@@ -1,0 +1,35 @@
+schema_version: "1.0"
+id: curated.world-capitals
+version: "1.0"
+description: Curated capital-city questions for 195 sovereign states in the UN system.
+source: curated
+
+generator:
+  method: pinned-source-deterministic-template
+  seed: 20261102
+  review_status: reviewed
+  notes: >-
+    Country scope and base capitals come from a pinned ODbL source. Multi-capital arrangements,
+    claimed capitals, and de facto capitals have explicit roles and aliases.
+
+records:
+  path: datasets/curated/world-capitals-v1.jsonl
+  format: jsonl
+  schema: schemas/golden-record.schema.json
+
+metadata:
+  domain: geography
+  scope: 193 UN member states plus Palestine and Vatican City/Holy See
+  record_count: 195
+  prompt_generation: deterministic synthetic templates
+  default_agent: agents/opencode-gpt-oss-20b.yaml
+  source_repository: https://github.com/mledoze/countries
+  source_commit: 6031f5df137c41c76d180c55a0782185ae3ed05b
+  source_sha256: 0d92fb23b43ae080bd439f5dc5d61a8845395fdd0af1479b433c59fe079bd6fd
+  generated_sha256: f9fb127da682fa1df12751348a44096e62b56011014efd04293dda5dcd24b990
+  source_license: ODbL-1.0
+  as_of: 2026-11-02
+  limitations: >-
+    Capital status can be politically disputed or split by government function. Records preserve
+    those distinctions in capital_roles and related_seats instead of pretending every case has one
+    universally agreed answer.

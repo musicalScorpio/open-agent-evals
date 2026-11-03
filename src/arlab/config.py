@@ -81,9 +81,47 @@ def load_dataset(path: Path) -> Mapping[str, Any]:
     root = project_root(path)
     value = load_yaml(path)
     validate_document(value, root / "schemas/dataset.schema.json", path)
-    for case in value["cases"]:
-        scenario_path = (root / str(case["scenario"])).resolve()
-        if root not in scenario_path.parents:
-            raise ConfigurationError(f"dataset scenario escapes project root: {case['scenario']}")
+    for case in value.get("cases", ()):
+        scenario_path = _project_path(root, str(case["scenario"]), "dataset scenario")
         load_scenario(scenario_path)
+    if "records" in value:
+        records = value["records"]
+        record_path = _project_path(root, str(records["path"]), "dataset records")
+        schema_path = _project_path(root, str(records["schema"]), "dataset record schema")
+        load_jsonl_documents(record_path, schema_path)
     return value
+
+
+def _project_path(root: Path, relative: str, label: str) -> Path:
+    path = (root / relative).resolve()
+    if root not in path.parents:
+        raise ConfigurationError(f"{label} escapes project root: {relative}")
+    return path
+
+
+def load_jsonl_documents(path: Path, schema_path: Path) -> list[Mapping[str, Any]]:
+    documents = []
+    identifiers = set()
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError as exc:
+        raise ConfigurationError(f"could not load JSONL {path}: {exc}") from exc
+    for number, line in enumerate(lines, start=1):
+        if not line.strip():
+            continue
+        source = Path(f"{path}:{number}")
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ConfigurationError(f"invalid JSON in {source}: {exc}") from exc
+        if not isinstance(value, dict):
+            raise ConfigurationError(f"expected an object in {source}")
+        validate_document(value, schema_path, source)
+        identifier = str(value.get("id", ""))
+        if identifier in identifiers:
+            raise ConfigurationError(f"duplicate record id in {path}: {identifier}")
+        identifiers.add(identifier)
+        documents.append(value)
+    if not documents:
+        raise ConfigurationError(f"dataset records are empty: {path}")
+    return documents

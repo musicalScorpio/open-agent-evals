@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-reliability-lab.dev/schemas/golden-record.schema.json",
+  "title": "Agent Reliability Lab Golden Record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "input",
+    "expected_output",
+    "accepted_answers",
+    "split",
+    "metadata"
+  ],
+  "properties": {
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$" },
+    "input": { "type": "string", "minLength": 1 },
+    "expected_output": { "type": "string", "minLength": 1 },
+    "accepted_answers": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": { "type": "string", "minLength": 1 }
+      }
+    },
+    "split": { "enum": ["train", "validation", "test"] },
+    "metadata": { "type": "object" }
+  }
+}

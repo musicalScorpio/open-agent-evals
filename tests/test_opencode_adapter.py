@@ -130,3 +130,16 @@ def test_parses_structured_retryable_fault_as_failed_call(tmp_path: Path) -> Non
 
     assert calls[0].error == "rate_limited"
     assert calls[0].result is None
+
+
+def test_writes_isolated_agent_for_no_tool_tasks(tmp_path: Path) -> None:
+    session = _session(tmp_path)
+
+    path = session._write_local_config()
+    config = json.loads(path.read_text(encoding="utf-8"))
+
+    assert config["default_agent"] == "arlab"
+    assert config["agent"]["arlab"]["prompt"] == "{file:./ARLAB_INSTRUCTIONS.md}"
+    instructions = (tmp_path / "ARLAB_INSTRUCTIONS.md").read_text(encoding="utf-8")
+    assert "Complete it directly" in instructions
+    assert "Available tools" not in instructions
