@@ -47,7 +47,7 @@ def _commit(root: Path) -> str:
         return "unavailable"
 
 
-def _tool_call(call: Any, index: int) -> dict[str, Any]:
+def _tool_call(call: Any) -> dict[str, Any]:
     status = (
         "succeeded"
         if call.error is None
@@ -66,8 +66,6 @@ def _tool_call(call: Any, index: int) -> dict[str, Any]:
         value["error_type"] = call.error
     if call.authorized is not None:
         value["authorized"] = call.authorized
-    if index > 0 and call.name == "weather.lookup":
-        value["retry_of"] = "weather-1"
     return value
 
 
@@ -123,6 +121,18 @@ class BenchmarkRunner:
             )
 
         passed = sum(result["status"] == "passed" for result in results)
+        measurement_totals = {
+            name: sum(result["measurements"].get(name, 0) for result in results)
+            for name in (
+                "tool_call_count",
+                "model_call_count",
+                "total_cost_usd",
+                "input_tokens",
+                "output_tokens",
+                "reasoning_tokens",
+                "cached_input_tokens",
+            )
+        }
         summary = {
             "run_id": run_id,
             "scenario_id": scenario["id"],
@@ -132,6 +142,8 @@ class BenchmarkRunner:
             "passed": passed,
             "failed": total - passed,
             "pass_rate": passed / total,
+            "average_latency_ms": sum(result["duration_ms"] for result in results) / total,
+            **measurement_totals,
             "result_directory": str(store.directory / run_id),
             "skipped_optional_plugins": sorted(set(skipped_plugins)),
         }
@@ -176,7 +188,14 @@ class BenchmarkRunner:
                 await session.close()
 
         duration_ms = (time.perf_counter() - started) * 1000
-        calls = [_tool_call(call, index) for index, call in enumerate(turn.tool_calls)]
+        calls = []
+        previous_call_by_name: dict[str, str] = {}
+        for call in turn.tool_calls:
+            normalized_call = _tool_call(call)
+            if call.name in previous_call_by_name:
+                normalized_call["retry_of"] = previous_call_by_name[call.name]
+            previous_call_by_name[call.name] = call.id
+            calls.append(normalized_call)
         usage = turn.usage
         measurements = {
             "turn_count": 1,

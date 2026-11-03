@@ -75,3 +75,15 @@ def load_scenario(path: Path) -> Mapping[str, Any]:
     value = load_yaml(path)
     validate_document(value, root / "schemas/scenario.schema.json", path)
     return value
+
+
+def load_dataset(path: Path) -> Mapping[str, Any]:
+    root = project_root(path)
+    value = load_yaml(path)
+    validate_document(value, root / "schemas/dataset.schema.json", path)
+    for case in value["cases"]:
+        scenario_path = (root / str(case["scenario"])).resolve()
+        if root not in scenario_path.parents:
+            raise ConfigurationError(f"dataset scenario escapes project root: {case['scenario']}")
+        load_scenario(scenario_path)
+    return value

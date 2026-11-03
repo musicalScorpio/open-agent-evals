@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "tool": "weather.lookup",
+  "match": {
+    "city": "Phoenix",
+    "date": "this afternoon"
+  },
+  "result": {
+    "city": "Phoenix",
+    "date": "this afternoon",
+    "conditions": "clear skies",
+    "precipitation_probability": 2,
+    "recommendation": "No umbrella needed"
+  },
+  "provenance": {
+    "source": "synthetic",
+    "seed": 20261102,
+    "reviewed": true
+  }
+}

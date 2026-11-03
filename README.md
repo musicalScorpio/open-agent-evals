@@ -54,6 +54,33 @@ A nonzero exit code means the candidate failed one or more quality gates; it doe
 mean the harness crashed. Inspect the printed result directory to see task, tool, authorization,
 and budget evidence.
 
+## Synthetic comparison dataset
+
+The first human-reviewed synthetic dataset contains three fixture-grounded weather cases across
+validation and test splits. Validate it, export DeepEval-compatible goldens, or compare agents:
+
+```bash
+uv run arlab dataset validate
+uv run arlab dataset export-deepeval
+
+# Establish the known-good baseline
+uv run arlab dataset run \
+  --agent agents/reference-weather-recovery.yaml
+
+# Compare the baseline with the local OpenCode candidate
+uv run arlab dataset run \
+  --agent agents/reference-weather-recovery.yaml \
+  --agent agents/opencode-gpt-oss-20b.yaml
+```
+
+The source manifest is `datasets/synthetic/weather-reliability-v1.yaml`. The export command writes
+one JSON object per line with DeepEval's `input`, `expected_output`, and `context` golden fields,
+plus ARLab provenance and tool expectations in `additional_metadata`, under `results/exports/` by
+default. DeepEval can load the file directly with
+`EvaluationDataset.add_goldens_from_jsonl_file()`; DeepEval remains optional.
+The comparison JSON reports pass rate, average latency, model/tool calls, cost, and token totals for
+each agent. Increase `--runs` to measure repeatability instead of relying on a single attempt.
+
 ## Status
 
 **Step 1B — First runnable vertical slice**

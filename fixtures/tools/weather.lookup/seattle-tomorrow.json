@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0",
+  "tool": "weather.lookup",
+  "match": {
+    "city": "Seattle",
+    "date": "tomorrow"
+  },
+  "result": {
+    "city": "Seattle",
+    "date": "tomorrow",
+    "conditions": "steady rain",
+    "precipitation_probability": 85,
+    "recommendation": "Bring an umbrella"
+  },
+  "provenance": {
+    "source": "synthetic",
+    "seed": 20261102,
+    "reviewed": true
+  }
+}

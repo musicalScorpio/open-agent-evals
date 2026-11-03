@@ -23,9 +23,12 @@ def _timestamp() -> str:
 
 
 class ReferenceWeatherSession:
-    def __init__(self, session_id: str, tool_provider: Any) -> None:
+    def __init__(self, session_id: str, tool_provider: Any, scenario: Mapping[str, Any]) -> None:
         self._id = session_id
         self._tools = tool_provider
+        expected = scenario["tools"]["expected"][0]
+        self._tool_name = str(expected["name"])
+        self._arguments = dict(expected.get("arguments", {}))
 
     @property
     def id(self) -> str:
@@ -33,26 +36,26 @@ class ReferenceWeatherSession:
 
     async def send(self, message: str) -> AgentTurn:
         del message
-        arguments = {"city": "Orlando", "date": "tomorrow"}
+        arguments = self._arguments
         calls: list[ToolCall] = []
         events: list[AgentEvent] = []
 
         for attempt in range(1, 3):
-            call_id = f"weather-{attempt}"
+            call_id = f"tool-{attempt}"
             events.append(
                 AgentEvent(
                     AgentEventType.TOOL_CALL_REQUESTED,
                     _timestamp(),
-                    {"call_id": call_id, "name": "weather.lookup", "arguments": arguments},
+                    {"call_id": call_id, "name": self._tool_name, "arguments": arguments},
                 )
             )
             try:
-                result = await self._tools.invoke("weather.lookup", arguments)
+                result = await self._tools.invoke(self._tool_name, arguments)
             except ToolInvocationError as exc:
                 calls.append(
                     ToolCall(
                         id=call_id,
-                        name="weather.lookup",
+                        name=self._tool_name,
                         arguments=arguments,
                         error=exc.error_type,
                         authorized=True,
@@ -79,7 +82,7 @@ class ReferenceWeatherSession:
             calls.append(
                 ToolCall(
                     id=call_id,
-                    name="weather.lookup",
+                    name=self._tool_name,
                     arguments=arguments,
                     result=result,
                     authorized=True,
@@ -89,7 +92,7 @@ class ReferenceWeatherSession:
                 AgentEvent(
                     AgentEventType.TOOL_CALL_COMPLETED,
                     _timestamp(),
-                    {"call_id": call_id, "name": "weather.lookup"},
+                    {"call_id": call_id, "name": self._tool_name},
                 )
             )
             content = (
@@ -127,4 +130,7 @@ class ReferenceWeatherAdapter:
         provider = context.services.get("tool_provider")
         if provider is None:
             raise RuntimeError("the reference weather agent requires a tool provider")
-        return ReferenceWeatherSession(f"reference-{context.trial_id}", provider)
+        scenario = context.metadata.get("scenario")
+        if not isinstance(scenario, Mapping):
+            raise RuntimeError("the reference weather agent requires scenario metadata")
+        return ReferenceWeatherSession(f"reference-{context.trial_id}", provider, scenario)

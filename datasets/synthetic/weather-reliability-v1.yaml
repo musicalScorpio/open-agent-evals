@@ -1,0 +1,24 @@
+schema_version: "1.0"
+id: synthetic.weather-reliability
+version: "1.0"
+description: Human-reviewed synthetic weather tasks for tool grounding and transient-failure recovery.
+source: synthetic
+
+generator:
+  method: deterministic-template
+  seed: 20261102
+  review_status: reviewed
+  notes: Ground truth is committed as tool fixtures; no model generated the expected answers.
+
+cases:
+  - scenario: suites/synthetic/weather/seattle-rain.yaml
+    split: validation
+  - scenario: suites/synthetic/weather/phoenix-dry.yaml
+    split: validation
+  - scenario: suites/synthetic/weather/miami-rate-limit.yaml
+    split: test
+
+metadata:
+  domain: weather
+  intended_use: local agent comparison
+  limitations: Synthetic coverage must later be supplemented with reviewed production failures.
