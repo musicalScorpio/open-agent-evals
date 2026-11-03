@@ -4,55 +4,118 @@ Agent Reliability Lab is a reproducible benchmark suite for tool-using AI agents
 
 The project is intentionally **benchmark-first**. DeepEval, promptfoo, Langfuse, and OpenTelemetry are integrations; the durable product is the versioned scenario corpus, controlled execution environment, normalized run record, calibrated metrics, and CI quality gates.
 
-## Run it locally
+## Quickstart
 
-The first executable benchmark is intentionally self-contained. It does not need a cloud key,
-Ollama, or OpenCode: it runs a known-good reference agent against a committed weather fixture,
-forces the first tool call to time out, verifies the retry, scores six deterministic metrics, and
-repeats the trial three times.
+ARLab has two useful starting modes:
+
+1. **Harness self-test:** requires only Git and `uv`; no model, account, API key, OpenCode, or
+   Ollama is needed.
+2. **Real local-agent benchmark:** adds OpenCode 1.x, Ollama, and the local `gpt-oss:20b` model.
+
+### 1. Clone and install
+
+Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/) if it is not already
+available. On macOS, either command works:
 
 ```bash
-cd /Users/musicalscorpio/Documents/CODING/agent-reliability-lab
+brew install uv
+# or: curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Then clone and install the locked project dependencies:
+
+```bash
+git clone https://github.com/musicalScorpio/open-agent-evals.git
+cd open-agent-evals
 uv sync --extra dev
+```
+
+`uv` creates the project virtual environment and installs dependencies from `pyproject.toml` and
+`uv.lock`. You do not need to activate the environment; use `uv run` for every command below.
+
+### 2. Run the self-contained harness test
+
+```bash
 uv run arlab doctor
 uv run arlab validate
-uv run arlab run
+uv run pytest -q
+uv run arlab run --runs 1
 ```
 
-The last command prints a run summary. Full evidence is written to
-`results/<run-id>/trial-*.json`, with an aggregate `summary.json`. The `results/` directory is
-ignored by Git so local runs do not dirty the repository.
+This uses the built-in reference agent and committed weather fixtures. It injects a retryable tool
+failure, verifies recovery, evaluates six deterministic quality gates, and writes evidence locally.
+It works even when `doctor` reports OpenCode or Ollama as missing.
 
-Useful variations:
+The final command prints a `result_directory`. Inspect its evidence with:
 
 ```bash
-# One quick trial instead of the scenario's default three
-uv run arlab run --runs 1
+# Replace <run-id> with the value printed by the command
+cat results/<run-id>/summary.json
+cat results/<run-id>/trial-001.json
+```
 
-# See every agent, evaluator, telemetry, and storage plugin available at runtime
-uv run arlab plugins
+### 3. Install the real local-agent stack
 
-# Select definitions explicitly
+ARLab's OpenCode adapter is currently tested with **OpenCode 1.19.5**. OpenCode 1 and 2 use the
+same executable name but different configuration formats, so use the official OpenCode 1 installer:
+
+```bash
+curl -fsSL https://opencode.ai/install | bash
+opencode --version
+```
+
+Install [Ollama](https://ollama.com/download), start it, and pull the configured model:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Run this in a separate terminal if the Ollama app/service is not already running
+ollama serve
+
+# Back in the project terminal
+ollama pull gpt-oss:20b
+ollama list
+uv run arlab doctor
+```
+
+`gpt-oss:20b` is a large local download and needs substantially more memory than a small model.
+No cloud key is required: OpenCode calls Ollama at `http://127.0.0.1:11434`.
+
+### 4. Run a real OpenCode + Ollama benchmark
+
+```bash
 uv run arlab run \
   --scenario suites/smoke/recovery-weather-timeout.yaml \
-  --agent agents/reference-weather-recovery.yaml \
-  --profile evaluation-profiles/deterministic-only.yaml
+  --agent agents/opencode-gpt-oss-20b.yaml \
+  --profile evaluation-profiles/deterministic-only.yaml \
+  --runs 1
 ```
 
-`arlab doctor` reports Ollama and OpenCode separately. They are optional for this harness
-self-test. The OpenCode adapter and Ollama agent definitions are present; connecting benchmark
-tools to a real OpenCode session uses generated, trial-isolated custom tools.
+The exit code is meaningful:
 
-After installing OpenCode, starting Ollama, and pulling `gpt-oss:20b`, run the same scenario
-against the real local agent:
+- `0`: every required quality gate passed.
+- `1`: the harness ran, but the candidate failed at least one quality gate or configuration check.
+
+A failed benchmark is not automatically a harness crash. Open the printed `trial-001.json` and
+inspect `outcome`, `tool_calls`, `measurements`, and `evaluations` to see the exact reason.
+
+### Useful commands
 
 ```bash
-uv run arlab run --agent agents/opencode-gpt-oss-20b.yaml --runs 1
+# List installed runtime adapters, evaluators, telemetry sinks, and result stores
+uv run arlab plugins
+
+# Run the default reference scenario three times, as declared by the scenario
+uv run arlab run
+
+# Show command-specific flags
+uv run arlab --help
+uv run arlab dataset run --help
 ```
 
-A nonzero exit code means the candidate failed one or more quality gates; it does not necessarily
-mean the harness crashed. Inspect the printed result directory to see task, tool, authorization,
-and budget evidence.
+All generated evidence stays under `results/`, which is ignored by Git. ARLab does not write API
+keys, environment files, prompts from unrelated sessions, or runtime traces into committed source
+directories.
 
 ## Synthetic comparison dataset
 
