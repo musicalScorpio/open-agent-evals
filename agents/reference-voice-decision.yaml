@@ -1,0 +1,37 @@
+schema_version: "1.0"
+id: reference.voice-decision
+version: "1.0"
+description: Known-good deterministic baseline for validating voice decision scoring.
+tags: [local, deterministic, reference, voice, smoke]
+
+runtime:
+  adapter: scripted-decision
+  mode: in_process
+
+model:
+  provider: built-in
+  name: scripted-decision-v1
+  license: Apache-2.0
+  options: {}
+
+capabilities:
+  tool_use: false
+  multi_turn: false
+  streaming: false
+  resumable: false
+  permission_handling: true
+  structured_output: true
+
+permissions:
+  default: deny
+  rules: {}
+
+limits:
+  max_turns: 1
+  max_tool_calls: 0
+  timeout_seconds: 30
+
+metadata:
+  intended_use: harness-self-test
+  not_for_model_comparison: true
+

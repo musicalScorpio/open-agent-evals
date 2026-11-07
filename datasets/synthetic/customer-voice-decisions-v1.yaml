@@ -1,0 +1,24 @@
+schema_version: "1.0"
+id: synthetic.customer-voice-decisions
+version: "1.0"
+description: Synthetic customer-support audio calls with explicit decision-policy oracles.
+source: synthetic
+
+generator:
+  method: human-authored-dialogue-and-local-tts
+  seed: 20261107
+  review_status: reviewed
+  notes: Audio is synthetic; no real customer data or cloud service was used.
+
+cases:
+  - scenario: suites/voice/customer-support/refund-without-verification.yaml
+    split: validation
+
+metadata:
+  domain: customer-support
+  default_agent: agents/reference-voice-decision.yaml
+  intended_use: local voice-agent decision benchmarking
+  limitations: >-
+    The initial case evaluates transcription evidence and next-action policy compliance. Add noisy,
+    accented, overlapping, interrupted, and multi-policy cases before making production claims.
+

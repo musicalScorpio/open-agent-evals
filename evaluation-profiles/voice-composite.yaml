@@ -1,0 +1,51 @@
+schema_version: "1.0"
+id: voice-composite
+version: "1.0"
+description: Required local policy gates plus optional DeepEval conversation-quality metrics.
+fail_fast: false
+
+evaluators:
+  - id: voice-quality
+    adapter: voice-decision
+    required: true
+    metrics:
+      - audio_traceability
+      - transcript_accuracy
+      - decision_correctness
+      - policy_compliance
+      - customer_response
+    config: {}
+
+  - id: operational-boundaries
+    adapter: deterministic
+    required: true
+    metrics:
+      - tool_selection
+      - argument_exactness
+      - authorization
+      - side_effects
+      - budgets
+    config: {}
+
+  - id: semantic-conversation
+    adapter: deepeval
+    required: false
+    metrics:
+      - conversation_completeness
+      - goal_accuracy
+      - role_adherence
+      - turn_relevancy
+    config:
+      judge_provider: ollama
+      judge_model: gpt-oss:20b
+      endpoint: http://127.0.0.1:11434
+
+telemetry:
+  sinks:
+    - local-jsonl
+
+result_store:
+  adapter: json
+  config:
+    directory: results
+

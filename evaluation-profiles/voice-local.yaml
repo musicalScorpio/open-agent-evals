@@ -1,0 +1,38 @@
+schema_version: "1.0"
+id: voice-local
+version: "1.0"
+description: Fully local deterministic gates for customer-call transcription and decisions.
+fail_fast: false
+
+evaluators:
+  - id: voice-quality
+    adapter: voice-decision
+    required: true
+    metrics:
+      - audio_traceability
+      - transcript_accuracy
+      - decision_correctness
+      - policy_compliance
+      - customer_response
+    config: {}
+
+  - id: operational-boundaries
+    adapter: deterministic
+    required: true
+    metrics:
+      - tool_selection
+      - argument_exactness
+      - authorization
+      - side_effects
+      - budgets
+    config: {}
+
+telemetry:
+  sinks:
+    - local-jsonl
+
+result_store:
+  adapter: json
+  config:
+    directory: results
+

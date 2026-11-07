@@ -172,6 +172,37 @@ and generation provenance are committed beside the JSONL file.
 To run a special case directly, use its stable ID, for example
 `--case geography.capital.za` for South Africa. Repeat `--case` to select several countries.
 
+## Customer voice-agent evaluation
+
+The repository now includes a fully synthetic, local customer-support call with one audio clip per
+turn, a reference and observed transcript, and an explicit decision-policy oracle. Run the harness
+baseline first, then the real OpenCode + Ollama candidate:
+
+```bash
+uv run arlab run \
+  --scenario suites/voice/customer-support/refund-without-verification.yaml \
+  --agent agents/reference-voice-decision.yaml \
+  --profile evaluation-profiles/voice-local.yaml \
+  --runs 1
+
+uv run arlab run \
+  --scenario suites/voice/customer-support/refund-without-verification.yaml \
+  --agent agents/opencode-gpt-oss-20b.yaml \
+  --profile evaluation-profiles/voice-local.yaml \
+  --runs 3
+```
+
+The required gates cover audio traceability, ASR word error rate, exact next-action correctness,
+policy/authorization compliance, customer-message requirements, and operational budgets. Export a
+local, non-uploading trace in Confident AI's documented per-message audio shape with:
+
+```bash
+uv run arlab voice export-trace
+```
+
+See [customer voice-agent evaluation](docs/voice-evaluation.md) for the scoring model, result paths,
+DeepEval's optional semantic role, privacy guidance, and instructions for adding real calls safely.
+
 ## Status
 
 **Step 1B — First runnable vertical slice**

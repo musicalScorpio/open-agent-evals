@@ -23,6 +23,7 @@ from arlab.agents import AgentDefinition, AgentRunContext
 from arlab.builtins import registries
 from arlab.evaluation import EvaluationProfile, EvaluationRequest
 from arlab.tools import FixtureToolProvider
+from arlab.voice import render_task_prompt, result_turns
 
 
 def _now() -> str:
@@ -183,7 +184,7 @@ class BenchmarkRunner:
             adapter = self.plugins["agent_adapter"].create(agent.adapter, agent.runtime)
             session = await adapter.open_session(agent, context)
             try:
-                turn = await session.send(str(scenario["task"]["user_prompt"]))
+                turn = await session.send(render_task_prompt(scenario))
             finally:
                 await session.close()
 
@@ -205,6 +206,9 @@ class BenchmarkRunner:
             else (0 if agent.model.provider == "built-in" else 1),
             "total_cost_usd": float(usage.cost_usd or 0.0) if usage else 0.0,
         }
+        voice = scenario.get("voice")
+        if isinstance(voice, Mapping):
+            measurements["conversation_turn_count"] = len(voice.get("conversation", ())) + 1
         if usage:
             for name in (
                 "input_tokens",
@@ -280,6 +284,11 @@ class BenchmarkRunner:
                 else 0.0,
                 "final_output": turn.content,
             },
+            **(
+                {"turns": result_turns(scenario, turn.content, started_at)}
+                if isinstance(voice, Mapping)
+                else {}
+            ),
             "tool_calls": calls,
             "side_effects": [],
             "faults_injected": list(scenario.get("faults", ())),
@@ -291,7 +300,7 @@ class BenchmarkRunner:
                 "environment_hash": _hash({"python": sys.version, "platform": platform.platform()}),
                 "model_provider": agent.model.provider,
                 "model_name": agent.model.name,
-                "prompt_hash": _hash(scenario["task"]["user_prompt"]),
+                "prompt_hash": _hash(render_task_prompt(scenario)),
                 "configuration": {"profile": profile.id, "pid": os.getpid()},
             },
         }

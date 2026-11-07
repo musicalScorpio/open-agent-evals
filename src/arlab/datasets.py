@@ -97,7 +97,29 @@ def _scenario_golden(
     manifest: Mapping[str, Any], scenario: Mapping[str, Any], split: str, root: Path
 ) -> dict[str, Any]:
     metadata = scenario.get("metadata", {})
-    if "expected_output" in metadata:
+    if "voice" in scenario:
+        voice = scenario["voice"]
+        decision = voice["decision"]
+        expected_output = json.dumps(
+            {
+                "decision": {
+                    "action": decision["expected_action"],
+                    "reason_codes": decision.get("required_reason_codes", []),
+                },
+                "customer_message": decision["reference_customer_message"],
+            },
+            sort_keys=True,
+        )
+        context = [
+            json.dumps(
+                [
+                    {"role": message["role"], "content": message["content"]}
+                    for message in voice["conversation"]
+                ],
+                sort_keys=True,
+            )
+        ]
+    elif "expected_output" in metadata:
         expected_output = str(metadata["expected_output"])
         context = [json.dumps(metadata.get("capital_roles", []), sort_keys=True)]
     else:

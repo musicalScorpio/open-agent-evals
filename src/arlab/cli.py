@@ -29,6 +29,7 @@ from arlab.datasets import (
     scenario_cases,
 )
 from arlab.runner import BenchmarkRunner
+from arlab.voice import export_confident_audio_trace
 
 
 def _path(root: Path, value: str) -> Path:
@@ -131,6 +132,18 @@ def _dataset_export(args: argparse.Namespace, root: Path) -> int:
     )
     path = export_deepeval_jsonl(manifest, root, output)
     print(f"Exported {dataset_case_count(manifest, root)} DeepEval goldens to {path}")
+    return 0
+
+
+def _voice_export(args: argparse.Namespace, root: Path) -> int:
+    scenario = load_scenario(_path(root, args.scenario))
+    output = (
+        _path(root, args.output)
+        if args.output
+        else root / "results" / "exports" / f"{scenario['id']}.confident-audio-trace.json"
+    )
+    path = export_confident_audio_trace(scenario, root, output)
+    print(f"Exported local audio trace to {path}; no data was uploaded")
     return 0
 
 
@@ -239,6 +252,17 @@ def parser() -> argparse.ArgumentParser:
     run.add_argument("--runs", type=int, help="override scenario repetitions")
     run.add_argument("--output", help="override result directory")
 
+    voice = subcommands.add_parser("voice", help="work with customer voice-call evidence")
+    voice_commands = voice.add_subparsers(dest="voice_command", required=True)
+    export_voice = voice_commands.add_parser(
+        "export-trace", help="export per-turn audio in the Confident message shape"
+    )
+    export_voice.add_argument(
+        "--scenario",
+        default="suites/voice/customer-support/refund-without-verification.yaml",
+    )
+    export_voice.add_argument("--output")
+
     dataset = subcommands.add_parser("dataset", help="validate, export, or run a dataset")
     dataset_commands = dataset.add_subparsers(dest="dataset_command", required=True)
     dataset_default = "datasets/synthetic/weather-reliability-v1.yaml"
@@ -280,6 +304,8 @@ def main() -> int:
             if args.dataset_command == "export-deepeval":
                 return _dataset_export(args, root)
             return asyncio.run(_dataset_run(args, root))
+        if args.command == "voice":
+            return _voice_export(args, root)
         return asyncio.run(_run(args, root))
     except (ConfigurationError, KeyError, RuntimeError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)

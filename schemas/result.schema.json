@@ -95,6 +95,7 @@
       "required": ["turn_count", "tool_call_count", "model_call_count", "total_cost_usd"],
       "properties": {
         "turn_count": { "type": "integer", "minimum": 0 },
+        "conversation_turn_count": { "type": "integer", "minimum": 0 },
         "tool_call_count": { "type": "integer", "minimum": 0 },
         "model_call_count": { "type": "integer", "minimum": 0 },
         "input_tokens": { "type": "integer", "minimum": 0 },

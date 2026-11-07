@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from pathlib import Path
@@ -74,7 +75,27 @@ def load_scenario(path: Path) -> Mapping[str, Any]:
     root = project_root(path)
     value = load_yaml(path)
     validate_document(value, root / "schemas/scenario.schema.json", path)
+    _validate_voice_assets(value, root, path)
     return value
+
+
+def _validate_voice_assets(value: Mapping[str, Any], root: Path, source: Path) -> None:
+    voice = value.get("voice")
+    if not isinstance(voice, Mapping):
+        return
+    for index, message in enumerate(voice.get("conversation", ()), start=1):
+        audio = message.get("audio") if isinstance(message, Mapping) else None
+        if not isinstance(audio, Mapping):
+            continue
+        asset = _project_path(root, str(audio["path"]), f"voice audio turn {index}")
+        if not asset.is_file():
+            raise ConfigurationError(f"{source} references missing audio fixture: {asset}")
+        expected = audio.get("sha256")
+        actual = hashlib.sha256(asset.read_bytes()).hexdigest()
+        if expected and expected != actual:
+            raise ConfigurationError(
+                f"{source} voice audio turn {index} sha256 mismatch: {audio['path']}"
+            )
 
 
 def load_dataset(path: Path) -> Mapping[str, Any]:

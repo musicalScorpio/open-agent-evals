@@ -87,6 +87,7 @@
         "seed": { "type": "integer" }
       }
     },
+    "voice": { "$ref": "#/$defs/voice" },
     "metadata": { "type": "object" }
   },
   "$defs": {
@@ -153,6 +154,97 @@
         "max_cost_usd": { "type": "number", "minimum": 0 },
         "max_input_tokens": { "type": "integer", "minimum": 0 },
         "max_output_tokens": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["conversation", "transcription", "decision", "privacy"],
+      "properties": {
+        "conversation": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/voiceMessage" }
+        },
+        "transcription": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reference", "observed", "max_word_error_rate"],
+          "properties": {
+            "reference": { "type": "string", "minLength": 1 },
+            "observed": { "type": "string", "minLength": 1 },
+            "max_word_error_rate": { "type": "number", "minimum": 0 }
+          }
+        },
+        "decision": { "$ref": "#/$defs/voiceDecision" },
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["synthetic", "contains_pii"],
+          "properties": {
+            "synthetic": { "type": "boolean" },
+            "contains_pii": { "type": "boolean" },
+            "notes": { "type": "string" }
+          }
+        }
+      }
+    },
+    "voiceMessage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "content"],
+      "properties": {
+        "role": { "enum": ["user", "assistant"] },
+        "content": { "type": "string", "minLength": 1 },
+        "audio": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "mime_type"],
+          "properties": {
+            "path": { "type": "string", "pattern": "^fixtures/.+" },
+            "mime_type": { "enum": ["audio/wav", "audio/mpeg", "audio/ogg"] },
+            "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+          }
+        }
+      }
+    },
+    "voiceDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_action",
+        "allowed_actions",
+        "forbidden_actions",
+        "required_reason_codes",
+        "reference_customer_message"
+      ],
+      "properties": {
+        "expected_action": { "type": "string", "minLength": 1 },
+        "allowed_actions": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "forbidden_actions": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_reason_codes": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "forbidden_reason_codes": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "customer_message_must_include": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "customer_message_must_not_include": {
+          "type": "array", "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "reference_customer_message": { "type": "string", "minLength": 1 }
       }
     }
   }
